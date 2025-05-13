@@ -1,0 +1,4 @@
+cron:
+- description: "hourly job"
+  url: https://far-warehousing.de.r.appspot.com
+  schedule: every 2 minutes

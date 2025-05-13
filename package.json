@@ -1,0 +1,40 @@
+{
+  "name": "warehousing-prj",
+  "version": "1.0.0",
+  "description": "Warehousing project for the pushing data of CSV files to ZOHO using Pasive FTP and Open API.",
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rathits/warehousing-backend.git"
+  },
+  "author": "kaustubh chonkar",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rathits/warehousing-backend/issues"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "homepage": "https://github.com/rathits/warehousing-backend#readme",
+  "dependencies": {
+    "@google-cloud/storage": "^7.13.0",
+    "csv-parse": "^5.5.6",
+    "csv-parser": "^3.0.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "fs-extra": "^11.2.0",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^6.10.0",
+    "p-limit": "^6.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.3"
+  }
+}
