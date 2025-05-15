@@ -1,10 +1,7 @@
 import https from 'https';
-// import refreshToken from "./refreshToken.js";
-// import updateItemStock from "./updateItemStockToZoho.js";
 import pLimit from 'p-limit';
-// import fetchItemFromZoho from "./fetchItemsFromZoho.js";
-import { convertQuantityToItemUnit } from './pushSOToZoho.js';
 import { fetchItemById } from './fetchItemsFromZoho.js';
+import { normalizeSku, normalizeString } from './normalizeUtils.js';
 
 const limit = pLimit(5);
 
@@ -18,6 +15,7 @@ async function pushPOToZoho(
   vendors,
   wareHouses,
   itemData,
+  sendEmail = null,
 ) {
   console.log('itemData=>', itemData);
   const getOptions = {
@@ -49,85 +47,174 @@ async function pushPOToZoho(
     },
   });
 
+  // async function getAllPurchaseOrders() {
+  //   try {
+  //     return new Promise((resolve, reject) => {
+  //       const req = https.request(getOptions, (res) => {
+  //         let body = '';
+
+  //         res.on('data', (chunk) => {
+  //           body += chunk;
+  //         });
+
+  //         res.on('end', () => {
+  //           try {
+  //             const response = JSON.parse(body);
+  //             if (res.statusCode >= 200 && res.statusCode < 300) {
+  //               console.log('Fetched existing POs successfully.');
+  //               resolve(response.purchaseorders || []);
+  //             } else {
+  //               console.error('Error fetching POs:', response);
+  //               reject(
+  //                 new Error(
+  //                   `Failed to fetch existing purchase orders: ${response.message}`,
+  //                 ),
+  //               );
+  //             }
+  //           } catch (parseError) {
+  //             reject(
+  //               new Error(`Error parsing fetched POs: ${parseError.message}`),
+  //             );
+  //           }
+  //         });
+
+  //         res.on('error', (error) => {
+  //           reject(new Error(`Network error fetching POs: ${error.message}`));
+  //         });
+  //       });
+
+  //       req.end();
+  //     });
+  //   } catch (error) {
+  //     console.error('Error in getAllPurchaseOrders:', error);
+  //     throw error;
+  //   }
+  // }
+
+  // async function updatePOItemStock(itemData, poDetails, authToken) {
+  //   // Group line items by SKU and sum the quantities
+  //   const groupedLineItems = poDetails.line_items.reduce((acc, poItem) => {
+  //     const existingItem = acc[poItem.sku];
+  //     if (existingItem) {
+  //       existingItem.quantity += poItem.quantity;
+  //     } else {
+  //       acc[poItem.sku] = { ...poItem };
+  //     }
+  //     return acc;
+  //   }, {});
+
+  //   const updatePromises = Object.values(groupedLineItems).map(
+  //     async (poItem) => {
+  //       const item =
+  //         itemData?.find(
+  //           (item) => String(item.sku).trim() === String(poItem.sku).trim(),
+  //         ) || {};
+
+  //       const itemID = item.itemId || '';
+  //       const itemInitialStock = item.initialStock || '';
+  //       const po_stock = poItem.quantity || 0;
+
+  //       if (itemID) {
+  //         console.log(`Updating stock for SKU: ${poItem.sku}, Item ID: ${itemID}, Total Quantity: ${po_stock}`);
+  //         await delay(10000);
+  //         return await updateItemStock(itemID, itemInitialStock, authToken, po_stock, 0);
+  //       } else {
+  //         console.warn(`No match found for SKU: ${poItem.sku}, skipping update.`);
+  //       }
+  //     },
+  //   );
+
+  //   await Promise.all(updatePromises);
+  //   console.log('✅ All items processed.');
+  // }
+
   async function getAllPurchaseOrders() {
     try {
-      return new Promise((resolve, reject) => {
-        const req = https.request(getOptions, (res) => {
-          let body = '';
+      const allPurchaseOrders = [];
+      let page = 1;
+      let hasMore = true;
 
-          res.on('data', (chunk) => {
-            body += chunk;
-          });
+      while (hasMore) {
+        const paginatedOptions = {
+          method: 'GET',
+          hostname: 'www.zohoapis.com',
+          path: `/inventory/v1/purchaseorders?organization_id=${process.env.ZOHO_ORGANIZATION_ID}&page=${page}&per_page=200`,
+          headers: {
+            Authorization: `Zoho-oauthtoken ${authToken}`,
+          },
+        };
 
-          res.on('end', () => {
-            try {
-              const response = JSON.parse(body);
-              if (res.statusCode >= 200 && res.statusCode < 300) {
-                console.log('Fetched existing POs successfully.');
-                resolve(response.purchaseorders || []);
-              } else {
-                console.error('Error fetching POs:', response);
+        const pageResult = await new Promise((resolve, reject) => {
+          const req = https.request(paginatedOptions, (res) => {
+            let body = '';
+
+            res.on('data', (chunk) => {
+              body += chunk;
+            });
+
+            res.on('end', () => {
+              try {
+                const response = JSON.parse(body);
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                  console.log(`Fetched POs page ${page} successfully.`);
+                  resolve(response);
+                } else {
+                  console.error(`Error fetching POs page ${page}:`, response);
+                  reject(
+                    new Error(
+                      `Failed to fetch purchase orders page ${page}: ${response.message}`,
+                    ),
+                  );
+                }
+              } catch (parseError) {
                 reject(
                   new Error(
-                    `Failed to fetch existing purchase orders: ${response.message}`,
+                    `Error parsing fetched POs page ${page}: ${parseError.message}`,
                   ),
                 );
               }
-            } catch (parseError) {
+            });
+
+            res.on('error', (error) => {
               reject(
-                new Error(`Error parsing fetched POs: ${parseError.message}`),
+                new Error(
+                  `Network error fetching POs page ${page}: ${error.message}`,
+                ),
               );
-            }
+            });
           });
 
-          res.on('error', (error) => {
-            reject(new Error(`Network error fetching POs: ${error.message}`));
-          });
+          req.end();
         });
 
-        req.end();
-      });
+        // Add the fetched purchase orders to our collection
+        if (pageResult.purchaseorders && pageResult.purchaseorders.length > 0) {
+          allPurchaseOrders.push(...pageResult.purchaseorders);
+        }
+
+        // Check if there are more pages
+        hasMore = pageResult.page_context?.has_more_page || false;
+        console.log(
+          `Fetched purchase orders page ${page}, has_more_page: ${hasMore}`,
+        );
+
+        // Increment the page number for the next iteration
+        page++;
+
+        // Optional: Add a small delay between API calls to avoid rate limiting
+        if (hasMore) {
+          await delay(500); // 500ms delay between pagination requests
+        }
+      }
+
+      console.log(
+        `Fetched a total of ${allPurchaseOrders.length} purchase orders.`,
+      );
+      return allPurchaseOrders;
     } catch (error) {
       console.error('Error in getAllPurchaseOrders:', error);
       throw error;
     }
-  }
-
-  async function updatePOItemStock(itemData, poDetails, authToken) {
-    // Group line items by SKU and sum the quantities
-    const groupedLineItems = poDetails.line_items.reduce((acc, poItem) => {
-      const existingItem = acc[poItem.sku];
-      if (existingItem) {
-        existingItem.quantity += poItem.quantity;
-      } else {
-        acc[poItem.sku] = { ...poItem };
-      }
-      return acc;
-    }, {});
-
-    const updatePromises = Object.values(groupedLineItems).map(
-      async (poItem) => {
-        const item =
-          itemData?.find(
-            (item) => String(item.sku).trim() === String(poItem.sku).trim(),
-          ) || {};
-
-        const itemID = item.itemId || '';
-        const itemInitialStock = item.initialStock || '';
-        const po_stock = poItem.quantity || 0;
-
-        // if (itemID) {
-        //   console.log(`Updating stock for SKU: ${poItem.sku}, Item ID: ${itemID}, Total Quantity: ${po_stock}`);
-        //   await delay(10000);
-        //   return await updateItemStock(itemID, itemInitialStock, authToken, po_stock, 0);
-        // } else {
-        //   console.warn(`No match found for SKU: ${poItem.sku}, skipping update.`);
-        // }
-      },
-    );
-
-    await Promise.all(updatePromises);
-    console.log('✅ All items processed.');
   }
 
   async function createOrUpdatePO(poDetails, existingPOs) {
@@ -286,9 +373,15 @@ async function pushPOToZoho(
           continue;
         }
 
-        const warehouseId =
-          wareHouses?.find((wh) => wh.warehouse_name === po.warehouse_name)
-            ?.warehouse_id || '';
+        const warehouse =
+          wareHouses?.find(
+            (wh) =>
+              normalizeString(wh.warehouse_name) ===
+              normalizeString(po.warehouse_name),
+          ) || {};
+
+        const warehouseId = warehouse.warehouse_id || '';
+        const warehouseName = warehouse.warehouse_name || po.warehouse_name;
 
         // Find vendor with case-insensitive comparison
         const vendor = vendors?.find(
@@ -310,10 +403,9 @@ async function pushPOToZoho(
 
         const item =
           itemData?.find(
-            (item) =>
-              String(item.sku).trim().toLowerCase() ===
-              String(po.sku).trim().toLowerCase(),
+            (item) => normalizeSku(item.sku) === normalizeSku(po.sku),
           ) || {};
+
         const itemID = item.itemId || '';
         const itemUnit = item.itemUnit;
 
@@ -388,7 +480,7 @@ async function pushPOToZoho(
                 ? today
                 : po.delivery_date,
             vendor_id: vendorId,
-            attention: po.warehouse_name,
+            attention: warehouseName,
             delivery_org_address_id: warehouseId,
             line_items: [lineItem],
           });
@@ -412,6 +504,7 @@ async function pushPOToZoho(
     // Log errors but continue with valid POs
     if (errorPOs.length > 0) {
       console.warn(`Some POs had errors: ${JSON.stringify(errorPOs)}`);
+      sendEmail(`Some POs had errors: ${JSON.stringify(errorPOs)}`);
     }
 
     console.log('Successfully processed POs:', processedPOs.length);

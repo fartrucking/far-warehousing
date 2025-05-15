@@ -61,45 +61,86 @@ export async function fetchCustomerFromZoho(
   }
 }
 
+// export async function fetchAllCustomersFromZoho(newToken) {
+//   try {
+//     const apiUrl = `https://www.zohoapis.in/billing/v1/customers?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`;
+
+//     const response = await fetch(apiUrl, {
+//       method: "GET",
+//       headers: {
+//         Authorization: `Zoho-oauthtoken ${newToken}`,
+//       },
+//     });
+
+//     if (!response.ok) {
+//       const responseBody = await response.text();
+//       throw new Error(
+//         `Failed to fetch customers: ${response.status} ${response.statusText} - ${responseBody}`
+//       );
+//     }
+
+//     const customerData = await response.json();
+
+//     if (!customerData.customers || customerData.customers.length === 0) {
+//       console.warn("No customers found.");
+//       return [];
+//     }
+
+//     console.log(`Fetched ${customerData.customers.length} customers from Zoho`);
+
+//     return customerData.customers.map((customer) => ({
+//       customerId: customer.customer_id,
+//       displayName: customer.display_name,
+//       firstName: customer.first_name || "",
+//       lastName: customer.last_name || "",
+//       email: customer.email || "",
+//       companyName: customer.company_name || "",
+//       phone: customer.phone || "",
+//       mobile: customer.mobile || "",
+//       website: customer.website || "",
+//       tags: customer.tags || [],
+//     }));
+//   } catch (error) {
+//     console.error(`Error fetching customers: ${error.message}`);
+//     return [];
+//   }
+// }
+
 export async function fetchAllCustomersFromZoho(newToken) {
+  const allCustomers = [];
+  let page = 1;
+  const perPage = 200;
+  let hasMorePage = true;
+
   try {
-    const apiUrl = `https://www.zohoapis.in/billing/v1/customers?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`;
+    while (hasMorePage) {
+      const apiUrl = `https://www.zohoapis.com/inventory/v1/customers?organization_id=${process.env.ZOHO_ORGANIZATION_ID}&per_page=${perPage}&page=${page}`;
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Zoho-oauthtoken ${newToken}`,
-      },
-    });
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Zoho-oauthtoken ${newToken}`,
+        },
+      });
 
-    if (!response.ok) {
-      const responseBody = await response.text();
-      throw new Error(
-        `Failed to fetch customers: ${response.status} ${response.statusText} - ${responseBody}`,
-      );
+      if (!response.ok) {
+        const responseBody = await response.text();
+        throw new Error(
+          `Failed to fetch customers: ${response.status} ${response.statusText} - ${responseBody}`,
+        );
+      }
+
+      const data = await response.json();
+      const contacts = data.contacts || [];
+
+      allCustomers.push(...contacts);
+
+      hasMorePage = data.page_context?.has_more_page;
+      page++;
     }
 
-    const customerData = await response.json();
-
-    if (!customerData.customers || customerData.customers.length === 0) {
-      console.warn('No customers found.');
-      return [];
-    }
-
-    console.log(`Fetched ${customerData.customers.length} customers from Zoho`);
-
-    return customerData.customers.map((customer) => ({
-      customerId: customer.customer_id,
-      displayName: customer.display_name,
-      firstName: customer.first_name || '',
-      lastName: customer.last_name || '',
-      email: customer.email || '',
-      companyName: customer.company_name || '',
-      phone: customer.phone || '',
-      mobile: customer.mobile || '',
-      website: customer.website || '',
-      tags: customer.tags || [],
-    }));
+    console.log(`Fetched total ${allCustomers.length} customers.`);
+    return allCustomers;
   } catch (error) {
     console.error(`Error fetching customers: ${error.message}`);
     return [];

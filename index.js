@@ -13,6 +13,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import express from 'express';
 import nodemailer from 'nodemailer';
 // import fetchCustomerFromZoho, { fetchAllCustomersFromZoho } from "./fetchCustomerFromZoho.js";
+import { fetchAllCustomersFromZoho } from './fetchCustomerFromZoho.js';
 
 dotenv.config();
 
@@ -140,7 +141,7 @@ async function processCSVFile(
   newToken,
   vendors = null,
   wareHouses = null,
-  customers = null,
+  existingCustomers = null,
 ) {
   let result = null;
   try {
@@ -192,6 +193,7 @@ async function processCSVFile(
             process.env.ZOHO_API_URL,
             newToken,
             data,
+            wareHouses,
             sendEmail,
           );
           console.log(
@@ -235,6 +237,7 @@ async function processCSVFile(
             vendors,
             wareHouses,
             allItemData,
+            sendEmail,
           );
         } catch (error) {
           console.error(
@@ -260,6 +263,7 @@ async function processCSVFile(
             process.env.ZOHO_API_URL,
             newToken,
             data,
+            existingCustomers,
             sendEmail,
           );
           console.log(
@@ -425,10 +429,8 @@ async function processDirectories() {
   console.log(
     `processDirectories(), Starting to process directories in bucket: ${bucketName}`,
   );
-  const files = await getFilesFromBucket();
-  // const customers = await fetchAllCustomersFromZoho(newToken.access_token);
-  // console.log('All Customer Data =>', customers)
 
+  const files = await getFilesFromBucket();
   if (!files || files.length === 0) {
     console.log('processDirectories(), No files found in the bucket.');
     return; // Exit the function
@@ -440,8 +442,13 @@ async function processDirectories() {
   );
 
   const vendors = await fetchVendorsFromZoho(newToken.access_token, sendEmail);
-  // const customers = await fetchCustomerFromZoho(newToken.access_token);
-  // console.log('All Customer Data =>', customers)
+  // const existingCustomers = await fetchCustomerFromZoho(newToken.access_token);
+  // console.log('All Customer Data =>', existingCustomers);
+
+  const existingCustomers = await fetchAllCustomersFromZoho(
+    newToken.access_token,
+  );
+  // console.log('All Customer Data =>', existingCustomers);
 
   // Categorize files by type
   const itemFiles = [];
@@ -517,7 +524,13 @@ async function processDirectories() {
 
   for (const file of processingOrder) {
     console.log(`processDirectories(), Processing file: ${file.name}`);
-    await processCSVFile(file.name, newToken.access_token, vendors, wareHouses);
+    await processCSVFile(
+      file.name,
+      newToken.access_token,
+      vendors,
+      wareHouses,
+      existingCustomers,
+    );
   }
 }
 

@@ -2,6 +2,7 @@ import https from 'https';
 import fetchItemFromZoho from './fetchItemsFromZoho.js';
 // import updateItemToZoho from "./updateItemToZoho.js";
 import pLimit from 'p-limit';
+import { normalizeString } from './normalizeUtils.js';
 
 const limit = pLimit(5);
 
@@ -9,7 +10,13 @@ const limit = pLimit(5);
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Push or update items in Zoho
-async function pushItemToZoho(apiUrl, authToken, itemdata, sendEmail = null) {
+async function pushItemToZoho(
+  apiUrl,
+  authToken,
+  itemdata,
+  wareHouses,
+  sendEmail = null,
+) {
   console.log('pushItemToZoho() called itemData=>', itemdata);
   if (!Array.isArray(itemdata) || itemdata.length === 0) {
     throw new Error('Invalid item data: itemdata is not an array or is empty');
@@ -43,7 +50,7 @@ async function pushItemToZoho(apiUrl, authToken, itemdata, sendEmail = null) {
         console.log(`Item with SKU ${item.sku} found with ID: ${item_id}.`);
 
         // const payload = {
-        //   sku: item.sku,
+        //   sku: fetchedItem?.zohoSku || item.sku, // 👈 Use Zoho SKU if available,
         //   name: item.name,
         //   item_type: item.item_type,
         //   product_type: item.product_type,
@@ -58,6 +65,12 @@ async function pushItemToZoho(apiUrl, authToken, itemdata, sendEmail = null) {
         // Item doesn't exist, create it
         console.log(`Item with SKU ${item.sku} not found, creating...`);
 
+        const matchedWarehouse = wareHouses.find(
+          (wh) =>
+            normalizeString(wh.warehouse_name) ===
+            normalizeString(item.warehouse_name),
+        );
+
         const payload = {
           sku: item.sku,
           name: item.name,
@@ -69,7 +82,8 @@ async function pushItemToZoho(apiUrl, authToken, itemdata, sendEmail = null) {
             item.initial_stock_rate > 0
               ? Number(item.initial_stock_rate)
               : 0.01,
-          warehouse_name: item.warehouse_name,
+          warehouse_name:
+            matchedWarehouse?.warehouse_name || item.warehouse_name,
         };
 
         console.log('Payload being sent to Zoho:', payload);
@@ -134,7 +148,7 @@ async function pushItemToZoho(apiUrl, authToken, itemdata, sendEmail = null) {
       }
 
       return {
-        sku: item.sku,
+        sku: fetchedItem?.zohoSku || item.sku,
         name: item.name,
         itemId: item_id,
         initialStock: Number(item.initial_stock),
@@ -151,7 +165,7 @@ async function pushItemToZoho(apiUrl, authToken, itemdata, sendEmail = null) {
       itemdata.map(async (item) => {
         const result = await limit(async () => {
           const itemDetail = await processItem(item);
-          await delay(5000); // Wait for 5000ms before processing the next item
+          await delay(5000);
           return itemDetail;
         });
         return result;

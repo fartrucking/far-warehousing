@@ -1,6 +1,8 @@
 import fetch from 'node-fetch';
+import { normalizeSku } from './normalizeUtils.js';
 
 async function fetchItemFromZoho(sku, newToken, sendEmail = null) {
+  console.log('fetchItemFromZoho(), sku:', sku);
   try {
     let page = 1;
     const per_page = 100;
@@ -27,13 +29,17 @@ async function fetchItemFromZoho(sku, newToken, sendEmail = null) {
       const data = await response.json();
       const items = data.items || [];
 
-      const foundItem = items.find((item) => item.sku === sku);
+      const foundItem = items.find(
+        (item) => normalizeSku(item.sku) === normalizeSku(sku),
+      );
+
       if (foundItem) {
         console.log(`Found item for SKU ${sku} on page ${page}`);
         return {
           itemId: foundItem.item_id,
           itemInitialStock: foundItem.actual_available_stock,
           itemUnit: foundItem.unit,
+          zohoSku: foundItem.sku, // 👈 include actual SKU from Zoho
         };
       }
 
