@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from 'node-fetch';
 // import refreshToken from "./refreshToken.js";
 
 async function fetchWarehousesFromZoho(newToken, sendEmail = null) {
@@ -6,7 +6,7 @@ async function fetchWarehousesFromZoho(newToken, sendEmail = null) {
     const apiUrl = `https://www.zohoapis.com/inventory/v1/settings/warehouses?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`;
 
     const response = await fetch(apiUrl, {
-      method: "GET",
+      method: 'GET',
       headers: {
         Authorization: `Zoho-oauthtoken ${newToken}`,
       },
@@ -15,7 +15,7 @@ async function fetchWarehousesFromZoho(newToken, sendEmail = null) {
     if (!response.ok) {
       const responseBody = await response.text();
       throw new Error(
-        `Failed to fetch warehouses: ${response.status} ${response.statusText} - ${responseBody}`
+        `Failed to fetch warehouses: ${response.status} ${response.statusText} - ${responseBody}`,
       );
     }
 

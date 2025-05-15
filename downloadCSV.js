@@ -1,6 +1,6 @@
-const fetch = import("node-fetch");
-const fs = import("fs");
-const path = import("path");
+const fetch = import('node-fetch');
+const fs = import('fs');
+const path = import('path');
 
 async function downloadCSV(url, downloadPath) {
   const response = await fetch(url);

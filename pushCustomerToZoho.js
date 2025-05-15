@@ -1,6 +1,6 @@
-import https from "https";
-import fetchCustomerFromZoho from "./fetchCustomerFromZoho.js";
-import pLimit from "p-limit";
+import https from 'https';
+import fetchCustomerFromZoho from './fetchCustomerFromZoho.js';
+import pLimit from 'p-limit';
 
 const limit = pLimit(5);
 
@@ -11,15 +11,15 @@ async function pushCustomerToZoho(
   apiUrl,
   authToken,
   customerData,
-  sendEmail = null
+  sendEmail = null,
 ) {
-  console.log("customerData=>", customerData);
+  console.log('customerData=>', customerData);
 
   const options = {
-    hostname: "www.zohoapis.com",
+    hostname: 'www.zohoapis.com',
     headers: {
       Authorization: `Zoho-oauthtoken ${authToken}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   };
 
@@ -58,13 +58,13 @@ async function pushCustomerToZoho(
             const req = https.request(
               {
                 ...options,
-                method: "POST",
+                method: 'POST',
                 path: `/inventory/v1/contacts?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`,
               },
               (res) => {
-                let body = "";
-                res.on("data", (chunk) => (body += chunk));
-                res.on("end", () => {
+                let body = '';
+                res.on('data', (chunk) => (body += chunk));
+                res.on('end', () => {
                   try {
                     const response = JSON.parse(body);
                     if (response.code === 0) {
@@ -72,86 +72,84 @@ async function pushCustomerToZoho(
                     } else if (response.code === 3062) {
                       resolve(null); // Duplicate found
                     } else {
-                      sendEmail(
-                        `Error creating customer: ${response.message}`
-                      )
+                      sendEmail(`Error creating customer: ${response.message}`);
                       reject(
                         new Error(
-                          `Error creating customer: ${response.message}`
-                        )
+                          `Error creating customer: ${response.message}`,
+                        ),
                       );
                     }
                   } catch (err) {
                     reject(new Error(`Error parsing response: ${err.message}`));
                   }
                 });
-              }
+              },
             );
 
-            req.on("error", reject);
+            req.on('error', reject);
             req.write(requestBody);
             req.end();
           });
 
         const customer_id = await createCustomer();
-        console.log("customer_id =>", customer_id);
+        console.log('customer_id =>', customer_id);
 
         if (!customer_id) {
           console.log(
-            `Customer ${index + 1} already exists. Updating details...`
+            `Customer ${index + 1} already exists. Updating details...`,
           );
 
           const existingCustomerId = await fetchCustomerFromZoho(
             customer.contact_name,
             customer.company_name,
-            authToken
+            authToken,
           );
-          console.log("existingCustomerId =>", existingCustomerId);
+          console.log('existingCustomerId =>', existingCustomerId);
 
           const updateCustomer = () =>
             new Promise((resolve, reject) => {
               const req = https.request(
                 {
                   ...options,
-                  method: "PUT",
+                  method: 'PUT',
                   path: `/inventory/v1/contacts/${existingCustomerId.customerId}?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`,
                 },
                 (res) => {
-                  let body = "";
-                  res.on("data", (chunk) => (body += chunk));
-                  res.on("end", () => {
+                  let body = '';
+                  res.on('data', (chunk) => (body += chunk));
+                  res.on('end', () => {
                     try {
                       const response = JSON.parse(body);
-                      console.log("response ==>", response.message,);
+                      console.log('response ==>', response.message);
                       if (response.code === 0) {
                         resolve(existingCustomerId);
                       } else {
                         reject(
                           new Error(
-                            `Error updating customer: ${response.message}`
-                          )
+                            `Error updating customer: ${response.message}`,
+                          ),
                         );
                       }
                     } catch (err) {
                       reject(
-                        new Error(`Error parsing response: ${err.message}`)
+                        new Error(`Error parsing response: ${err.message}`),
                       );
                     }
                   });
-                }
+                },
               );
 
-              req.on("error", reject);
+              req.on('error', reject);
               req.write(requestBody);
               req.end();
             });
 
           const updatedCustomerId = await updateCustomer();
           console.log(
-            `Customer updated successfully with ID: ${updatedCustomerId}`
+            `Customer updated successfully with ID: ${updatedCustomerId}`,
           );
           console.log(
-            `Customer updated successfully with ID: ${updatedCustomerId.customerId}`
+            `Customer updated successfully with ID: ${updatedCustomerId.customerId}`,
           );
 
           customerDetails.push({
@@ -163,7 +161,7 @@ async function pushCustomerToZoho(
           resolve(updatedCustomerId);
         } else {
           console.log(
-            `Customer ${index + 1} created successfully with ID: ${customer_id}`
+            `Customer ${index + 1} created successfully with ID: ${customer_id}`,
           );
           customerDetails.push({
             contactName: customer.contact_name,
@@ -173,14 +171,14 @@ async function pushCustomerToZoho(
           resolve(customer_id);
         }
       } catch (error) {
-        console.log('err=========>', error)
+        console.log('err=========>', error);
         console.error(
-          `Error processing customer ${customer.contact_name? customer.contact_name : customer.company_name}:`,
-          error.message
+          `Error processing customer ${customer.contact_name ? customer.contact_name : customer.company_name}:`,
+          error.message,
         );
         sendEmail(
-          `Error processing customer ${customer.contact_name? customer.contact_name : customer.company_name}:`,
-          error.message
+          `Error processing customer ${customer.contact_name ? customer.contact_name : customer.company_name}:`,
+          error.message,
         );
         resolve(null); // Continue processing other customers
       }
@@ -199,7 +197,7 @@ async function pushCustomerToZoho(
       limit(async () => {
         await promise; // Await the promise
         await delay(5000); // Add 2000ms delay after the promise is resolved
-      })
+      }),
     );
 
     // Await all promises with controlled concurrency
@@ -207,7 +205,7 @@ async function pushCustomerToZoho(
 
     return customerDetails.filter((detail) => detail !== null); // Filter out null values
   } catch (error) {
-    console.error("Error pushing customers to Zoho:", error);
+    console.error('Error pushing customers to Zoho:', error);
     throw error;
   }
 }

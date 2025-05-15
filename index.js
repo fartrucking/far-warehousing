@@ -1,22 +1,22 @@
 // import cron from "node-cron";
-import refreshToken from "./refreshToken.js";
-import parseCSV from "./parseCSV.js";
-import pushItemToZoho from "./pushItemToZoho.js";
-import pushPOToZoho from "./pushPOToZoho.js";
-import pushCustomerToZoho from "./pushCustomerToZoho.js";
-import pushSOToZoho from "./pushSOToZoho.js";
-import fetchWarehousesFromZoho from "./fetchWarehousFromZoho.js";
-import fetchVendorsFromZoho from "./fetchVendorFromZoho.js";
-import dotenv from "dotenv";
-import { Storage } from "@google-cloud/storage";
-import { formatInTimeZone } from "date-fns-tz";
-import express from "express";
-import nodemailer from "nodemailer";
+import refreshToken from './refreshToken.js';
+import parseCSV from './parseCSV.js';
+import pushItemToZoho from './pushItemToZoho.js';
+import pushPOToZoho from './pushPOToZoho.js';
+import pushCustomerToZoho from './pushCustomerToZoho.js';
+import pushSOToZoho from './pushSOToZoho.js';
+import fetchWarehousesFromZoho from './fetchWarehousFromZoho.js';
+import fetchVendorsFromZoho from './fetchVendorFromZoho.js';
+import dotenv from 'dotenv';
+import { Storage } from '@google-cloud/storage';
+import { formatInTimeZone } from 'date-fns-tz';
+import express from 'express';
+import nodemailer from 'nodemailer';
 // import fetchCustomerFromZoho, { fetchAllCustomersFromZoho } from "./fetchCustomerFromZoho.js";
 
 dotenv.config();
 
-console.log("App is running");
+console.log('App is running');
 
 // Initialize Express
 const app = express();
@@ -38,25 +38,25 @@ const sendEmail = async (text) => {
   try {
     const info = await transporter.sendMail({
       from: '"FAR Warehousing" <fartrucking4@gmail.com>', // Sender email
-      to: "vishal.kudtarkar@techsierra.in, fartrucking4@gmail.com", // Recipients
+      to: 'vishal.kudtarkar@techsierra.in, fartrucking4@gmail.com', // Recipients
       // to: "vishal.kudtarkar@techsierra.in", // Recipients
-      subject: "Order Processing Logs",
+      subject: 'Order Processing Logs',
       text: text,
       html: text,
     });
 
-    console.log("sendEmail(), Message sent on email: ", text);
-    console.log("sendEmail(), ✅ Email sent:", info.messageId);
+    console.log('sendEmail(), Message sent on email: ', text);
+    console.log('sendEmail(), ✅ Email sent:', info.messageId);
   } catch (error) {
-    console.error("sendEmail(), ❌ Error sending email:", error);
+    console.error('sendEmail(), ❌ Error sending email:', error);
   }
 };
 
 function getCurrentDate() {
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
-  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+  const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -69,8 +69,8 @@ async function logError(operation, filePath, message, retries = 3) {
     const now = new Date();
     const istDate = formatInTimeZone(
       now,
-      "Asia/Kolkata",
-      "dd-MM-yyyy HH:mm:ss"
+      'Asia/Kolkata',
+      'dd-MM-yyyy HH:mm:ss',
     );
 
     const logMessage = `Date and Time (IST): ${istDate}\nOperation: ${operation}\nFile Path: ${filePath}\nError Message: ${message}\n\n`;
@@ -91,15 +91,15 @@ async function logError(operation, filePath, message, retries = 3) {
   } catch (error) {
     if (retries > 0) {
       console.warn(
-        `logError(), Retrying logError. Retries left: ${retries - 1}`
+        `logError(), Retrying logError. Retries left: ${retries - 1}`,
       );
       setTimeout(
         () => logError(operation, filePath, message, retries - 1),
-        1000
+        1000,
       );
     } else {
       console.error(
-        `logError(), Error logging error message: ${error.message}`
+        `logError(), Error logging error message: ${error.message}`,
       );
     }
   }
@@ -111,7 +111,7 @@ async function getFilesFromBucket() {
     const [files] = await storage.bucket(bucketName).getFiles();
 
     // Define prefixes for folders to skip
-    const skipPrefixes = ["Documents/", "processed/", "not-processed/"];
+    const skipPrefixes = ['Documents/', 'processed/', 'not-processed/'];
 
     // Filter out files that belong to the "Documents" or "processed" folders
     const filteredFiles = files.filter((file) => {
@@ -121,14 +121,14 @@ async function getFilesFromBucket() {
 
     return filteredFiles;
   } catch (error) {
-    await logError("Fetching Files from GCS", bucketName, error.message);
+    await logError('Fetching Files from GCS', bucketName, error.message);
     return [];
   }
 }
 
 // Function to check if a file is a CSV
 function isCSVFile(fileName) {
-  return fileName.toLowerCase().endsWith(".csv");
+  return fileName.toLowerCase().endsWith('.csv');
 }
 
 let allItemData = [];
@@ -140,7 +140,7 @@ async function processCSVFile(
   newToken,
   vendors = null,
   wareHouses = null,
-  customers = null
+  customers = null,
 ) {
   let result = null;
   try {
@@ -156,16 +156,16 @@ async function processCSVFile(
     } catch (parseError) {
       console.error(
         `processCSVFile(), Error parsing CSV for file ${filePath}:`,
-        parseError
+        parseError,
       );
-      await logError("Parsing CSV", filePath, parseError.message);
+      await logError('Parsing CSV', filePath, parseError.message);
       sendEmail(
-        `Error parsing CSV for file ${filePath}: ${parseError.message}`
+        `Error parsing CSV for file ${filePath}: ${parseError.message}`,
       );
       // Move the file to the "not-processed" folder
       await moveFileToFolder(
         file,
-        `not-processed/FAILED_${filePath.split("/").pop()}`
+        `not-processed/FAILED_${filePath.split('/').pop()}`,
       );
       return null;
     }
@@ -176,27 +176,27 @@ async function processCSVFile(
       // Move the file to the "not-processed" folder
       await moveFileToFolder(
         file,
-        `not-processed/EMPTY_${filePath.split("/").pop()}`
+        `not-processed/EMPTY_${filePath.split('/').pop()}`,
       );
       return null;
     }
 
     const headers = Object.keys(data[0]); // Extract headers from the first row
-    console.log(`processCSVFile(), Headers in the file: ${headers.join(", ")}`);
+    console.log(`processCSVFile(), Headers in the file: ${headers.join(', ')}`);
 
     try {
-      if (headers.includes("sku") && headers.includes("name")) {
+      if (headers.includes('sku') && headers.includes('name')) {
         console.log(`processCSVFile(), Processing as "item" file: ${filePath}`);
         try {
           result = await pushItemToZoho(
             process.env.ZOHO_API_URL,
             newToken,
             data,
-            sendEmail
+            sendEmail,
           );
           console.log(
             `processCSVFile(), Result from pushItemToZoho for ${filePath}:`,
-            result
+            result,
           );
           if (result) {
             allItemData = allItemData.concat(result);
@@ -208,23 +208,23 @@ async function processCSVFile(
           }
           console.log(
             `processCSVFile(), All item data after processing ${filePath}:`,
-            allItemData
+            allItemData,
           );
         } catch (error) {
           console.error(
             `processCSVFile(), Error processing "item" file: ${filePath}`,
-            error
+            error,
           );
           sendEmail(`Error processing "item" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_ITEM_${filePath.split("/").pop()}`
+            `not-processed/ERROR_ITEM_${filePath.split('/').pop()}`,
           );
           return null;
         }
       } else if (
-        headers.includes("purchaseorder_number") &&
-        headers.includes("vendor_name")
+        headers.includes('purchaseorder_number') &&
+        headers.includes('vendor_name')
       ) {
         console.log(`processCSVFile(), Processing as "PO" file: ${filePath}`);
         try {
@@ -234,37 +234,37 @@ async function processCSVFile(
             data,
             vendors,
             wareHouses,
-            allItemData
+            allItemData,
           );
         } catch (error) {
           console.error(
             `processCSVFile(), Error processing "PO" file: ${filePath}`,
-            error
+            error,
           );
           sendEmail(`Error processing "PO" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_PO_${filePath.split("/").pop()}`
+            `not-processed/ERROR_PO_${filePath.split('/').pop()}`,
           );
           return null;
         }
       } else if (
-        headers.includes("contact_name") &&
-        headers.includes("company_name")
+        headers.includes('contact_name') &&
+        headers.includes('company_name')
       ) {
         console.log(
-          `processCSVFile(), Processing as "customer" file: ${filePath}`
+          `processCSVFile(), Processing as "customer" file: ${filePath}`,
         );
         try {
           result = await pushCustomerToZoho(
             process.env.ZOHO_API_URL,
             newToken,
             data,
-            sendEmail
+            sendEmail,
           );
           console.log(
             `processCSVFile(), Result from pushCustomerToZoho for ${filePath}:`,
-            result
+            result,
           );
 
           const newCustomerData = Array.isArray(result[0]) ? result[0] : result;
@@ -282,7 +282,7 @@ async function processCSVFile(
 
             if (
               customer.customerId &&
-              typeof customer.customerId === "object" &&
+              typeof customer.customerId === 'object' &&
               customer.customerId.customerId
             ) {
               customerIdValue = customer.customerId.customerId;
@@ -306,23 +306,23 @@ async function processCSVFile(
           // const flattenedCustomers = Array.isArray(customers[0]) ? customers[0] : customers;
           console.log(
             `processCSVFile(), All customer data after processing ${filePath}:`,
-            allCustomerData
+            allCustomerData,
           );
         } catch (error) {
           console.error(
             `processCSVFile(), Error processing "customer" file: ${filePath}`,
-            error
+            error,
           );
           sendEmail(`Error processing "customer" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_CUSTOMER_${filePath.split("/").pop()}`
+            `not-processed/ERROR_CUSTOMER_${filePath.split('/').pop()}`,
           );
           return null;
         }
       } else if (
-        headers.includes("customer_name") &&
-        headers.includes("salesorder_number")
+        headers.includes('customer_name') &&
+        headers.includes('salesorder_number')
       ) {
         console.log(`processCSVFile(), Processing as "SO" file: ${filePath}`);
         try {
@@ -332,23 +332,23 @@ async function processCSVFile(
             data,
             allCustomerData,
             wareHouses,
-            sendEmail
+            sendEmail,
           );
         } catch (error) {
           console.error(
             `processCSVFile(), Error processing "SO" file: ${filePath}`,
-            error
+            error,
           );
           sendEmail(`Error processing "SO" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_SO_${filePath.split("/").pop()}`
+            `not-processed/ERROR_SO_${filePath.split('/').pop()}`,
           );
           return null;
         }
       } else {
         console.log(
-          `processCSVFile(), Unrecognized file structure: ${filePath}`
+          `processCSVFile(), Unrecognized file structure: ${filePath}`,
         );
         sendEmail(
           `Your file "${filePath}" could not be processed. Please ensure your file contains the required headers for one of these supported file types:
@@ -357,21 +357,21 @@ async function processCSVFile(
   - Customer files: must include "contact_name" and "company_name" headers
   - Sales Order (SO) files: must include "customer_name" and "salesorder_number" headers
   
-  Please reformat your file according to our templates and try again.`
+  Please reformat your file according to our templates and try again.`,
         );
         await moveFileToFolder(
           file,
-          `not-processed/UNRECOGNIZED_${filePath.split("/").pop()}`
+          `not-processed/UNRECOGNIZED_${filePath.split('/').pop()}`,
         );
         return null;
       }
 
       if (result) {
         console.log(
-          `processCSVFile(), File processed successfully: ${filePath}`
+          `processCSVFile(), File processed successfully: ${filePath}`,
         );
         sendEmail(`File processed successfully: ${filePath}`);
-        const newFilePath = `DONE_${filePath.split("/").pop()}`;
+        const newFilePath = `DONE_${filePath.split('/').pop()}`;
         const destination = `processed/${newFilePath}`;
         await file.copy(storage.bucket(bucketName).file(destination));
         await file.delete();
@@ -380,25 +380,25 @@ async function processCSVFile(
     } catch (error) {
       console.error(
         `processCSVFile(), Error processing file ${filePath}:`,
-        error
+        error,
       );
       await moveFileToFolder(
         file,
-        `not-processed/ERROR_${filePath.split("/").pop()}`
+        `not-processed/ERROR_${filePath.split('/').pop()}`,
       );
       return null;
     }
   } catch (error) {
     console.error(
       `processCSVFile(), Error processing file ${filePath}:`,
-      error
+      error,
     );
-    await logError("Processing CSV", filePath, error.message);
+    await logError('Processing CSV', filePath, error.message);
 
     // Move the file to the "not-processed" folder
     await moveFileToFolder(
       file,
-      `not-processed/FAILED_${filePath.split("/").pop()}`
+      `not-processed/FAILED_${filePath.split('/').pop()}`,
     );
   }
 
@@ -414,7 +414,7 @@ async function moveFileToFolder(file, destination) {
   } catch (moveError) {
     console.error(
       `moveFileToFolder(), Error moving file to ${destination}:`,
-      moveError
+      moveError,
     );
   }
 }
@@ -423,20 +423,20 @@ async function moveFileToFolder(file, destination) {
 async function processDirectories() {
   const newToken = await refreshToken();
   console.log(
-    `processDirectories(), Starting to process directories in bucket: ${bucketName}`
+    `processDirectories(), Starting to process directories in bucket: ${bucketName}`,
   );
   const files = await getFilesFromBucket();
   // const customers = await fetchAllCustomersFromZoho(newToken.access_token);
   // console.log('All Customer Data =>', customers)
 
   if (!files || files.length === 0) {
-    console.log("processDirectories(), No files found in the bucket.");
+    console.log('processDirectories(), No files found in the bucket.');
     return; // Exit the function
   }
 
   const wareHouses = await fetchWarehousesFromZoho(
     newToken.access_token,
-    sendEmail
+    sendEmail,
   );
 
   const vendors = await fetchVendorsFromZoho(newToken.access_token, sendEmail);
@@ -454,11 +454,11 @@ async function processDirectories() {
 
     // Ensure file.name exists
     if (!filePath) {
-      console.log("processDirectories(), Skipping file with no name");
+      console.log('processDirectories(), Skipping file with no name');
       continue;
     }
 
-    if (filePath.endsWith("/")) {
+    if (filePath.endsWith('/')) {
       console.log(`processDirectories(), Skipping directory: ${filePath}`);
       continue;
     }
@@ -479,29 +479,29 @@ async function processDirectories() {
     } catch (parseError) {
       console.error(
         `processDirectories(), Error parsing CSV for file ${filePath}:`,
-        parseError
+        parseError,
       );
-      await logError("Parsing CSV", filePath, parseError.message);
+      await logError('Parsing CSV', filePath, parseError.message);
       continue;
     }
 
     const headers = Object.keys(data[0]); // Extract headers from the first row
 
-    if (headers.includes("sku") && headers.includes("name")) {
+    if (headers.includes('sku') && headers.includes('name')) {
       itemFiles.push(file);
     } else if (
-      headers.includes("purchaseorder_number") &&
-      headers.includes("vendor_name")
+      headers.includes('purchaseorder_number') &&
+      headers.includes('vendor_name')
     ) {
       poFiles.push(file);
     } else if (
-      headers.includes("contact_name") &&
-      headers.includes("company_name")
+      headers.includes('contact_name') &&
+      headers.includes('company_name')
     ) {
       customerFiles.push(file);
     } else if (
-      headers.includes("customer_name") &&
-      headers.includes("salesorder_number")
+      headers.includes('customer_name') &&
+      headers.includes('salesorder_number')
     ) {
       soFiles.push(file);
     }
@@ -525,16 +525,16 @@ async function processDirectories() {
 // processDirectories();
 
 // Create an Express route to trigger the process
-app.post("/processDirectories", async (req, res) => {
+app.post('/processDirectories', async (req, res) => {
   try {
     await processDirectories();
-    res.status(200).send("Directories processed successfully.");
+    res.status(200).send('Directories processed successfully.');
   } catch (error) {
     console.error(
-      "app.post(/processDirectories), Error processing directories:",
-      error
+      'app.post(/processDirectories), Error processing directories:',
+      error,
     );
-    res.status(500).send("Error processing directories.");
+    res.status(500).send('Error processing directories.');
   }
 });
 

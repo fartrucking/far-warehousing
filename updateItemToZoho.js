@@ -1,4 +1,4 @@
-import https from "https";
+import https from 'https';
 // Function to add a delay
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -6,23 +6,23 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function updateItemToZoho(item_id, authToken, payload) {
   return new Promise(async (resolve, reject) => {
     const options = {
-      method: "PUT",
-      hostname: "www.zohoapis.com",
+      method: 'PUT',
+      hostname: 'www.zohoapis.com',
       path: `/inventory/v1/items/${item_id}?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`,
       headers: {
         Authorization: `Zoho-oauthtoken ${authToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     };
 
     const req = https.request(options, (res) => {
-      let body = "";
+      let body = '';
 
-      res.on("data", (chunk) => {
+      res.on('data', (chunk) => {
         body += chunk;
       });
 
-      res.on("end", () => {
+      res.on('end', () => {
         try {
           const response = JSON.parse(body);
           if (response.code === 0) {
@@ -36,7 +36,7 @@ async function updateItemToZoho(item_id, authToken, payload) {
       });
     });
 
-    req.on("error", (error) => {
+    req.on('error', (error) => {
       reject(new Error(`Request error: ${error.message}`));
     });
     const updatedPayload = {

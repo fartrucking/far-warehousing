@@ -1,13 +1,13 @@
-import updateItemToZoho from "./updateItemToZoho.js"; // Assuming your updateItemToZoho is in a separate file
+import updateItemToZoho from './updateItemToZoho.js'; // Assuming your updateItemToZoho is in a separate file
 
 async function updateItemStock(
   item_id,
   initial_stock,
   authToken,
   po_stock = 0,
-  so_stock = 0
+  so_stock = 0,
 ) {
-    // Delay function
+  // Delay function
   function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -21,7 +21,7 @@ async function updateItemStock(
   if (so_stock) {
     newInitialStock -= so_stock; // Subtract SO stock
   }
-  console.log("updateItemStock(), newInitialStock:", newInitialStock);
+  console.log('updateItemStock(), newInitialStock:', newInitialStock);
 
   // Prepare the updated payload
   const updatedPayload = {
@@ -34,11 +34,11 @@ async function updateItemStock(
   try {
     const response = await updateItemToZoho(item_id, authToken, updatedPayload);
     console.log(
-      "updateItemStock(), Item stock updated successfully:",
-      response.message
+      'updateItemStock(), Item stock updated successfully:',
+      response.message,
     );
   } catch (error) {
-    console.error("Failed to update item stock:", error);
+    console.error('Failed to update item stock:', error);
   }
 }
 

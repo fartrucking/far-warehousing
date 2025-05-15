@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from 'node-fetch';
 
 async function fetchItemFromZoho(sku, newToken, sendEmail = null) {
   try {
@@ -10,7 +10,7 @@ async function fetchItemFromZoho(sku, newToken, sendEmail = null) {
       const apiUrl = `https://www.zohoapis.com/inventory/v1/items?organization_id=${process.env.ZOHO_ORGANIZATION_ID}&page=${page}&per_page=${per_page}`;
 
       const response = await fetch(apiUrl, {
-        method: "GET",
+        method: 'GET',
         headers: {
           Authorization: `Zoho-oauthtoken ${newToken}`,
         },
@@ -27,7 +27,7 @@ async function fetchItemFromZoho(sku, newToken, sendEmail = null) {
       const data = await response.json();
       const items = data.items || [];
 
-      const foundItem = items.find(item => item.sku === sku);
+      const foundItem = items.find((item) => item.sku === sku);
       if (foundItem) {
         console.log(`Found item for SKU ${sku} on page ${page}`);
         return {
@@ -57,7 +57,7 @@ export async function fetchItemById(itemId, newToken, sendEmail = null) {
     const apiUrl = `https://www.zohoapis.com/inventory/v1/items/${itemId}?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`;
 
     const response = await fetch(apiUrl, {
-      method: "GET",
+      method: 'GET',
       headers: {
         Authorization: `Zoho-oauthtoken ${newToken}`,
       },

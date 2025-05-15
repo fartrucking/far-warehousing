@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 
 // Function to read CSV files from a directory
 export function readCSVFiles(directory) {
@@ -9,13 +9,13 @@ export function readCSVFiles(directory) {
 
     // Filter for CSV files
     const csvFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".csv"
+      (file) => path.extname(file).toLowerCase() === '.csv',
     );
 
     return csvFiles;
   } catch (error) {
     console.error(
-      `Error reading CSV files from directory (${directory}): ${error.message}`
+      `Error reading CSV files from directory (${directory}): ${error.message}`,
     );
     return [];
   }
@@ -28,7 +28,7 @@ export function createdDate(filePath) {
     return stats.birthtime;
   } catch (error) {
     console.error(
-      `Error getting creation date for file (${filePath}): ${error.message}`
+      `Error getting creation date for file (${filePath}): ${error.message}`,
     );
     return null;
   }

@@ -1,4 +1,4 @@
-import { parse } from "csv-parse/sync";
+import { parse } from 'csv-parse/sync';
 
 function parseCSV(csvContent) {
   try {
@@ -9,7 +9,7 @@ function parseCSV(csvContent) {
     });
     return records;
   } catch (error) {
-    console.error("Error parsing CSV:", error);
+    console.error('Error parsing CSV:', error);
     throw error;
   }
 }

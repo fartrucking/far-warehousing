@@ -1,8 +1,8 @@
-import https from "https";
-import refreshToken from "./refreshToken.js";
-import fetchItemFromZoho, { fetchItemById } from "./fetchItemsFromZoho.js";
-import updateItemStock from "./updateItemStockToZoho.js";
-import pLimit from "p-limit";
+import https from 'https';
+import refreshToken from './refreshToken.js';
+import fetchItemFromZoho, { fetchItemById } from './fetchItemsFromZoho.js';
+import updateItemStock from './updateItemStockToZoho.js';
+import pLimit from 'p-limit';
 
 const limit = pLimit(1);
 
@@ -12,8 +12,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // Function to get all existing sales orders
 async function getAllSalesOrders(authToken) {
   const options = {
-    method: "GET",
-    hostname: "www.zohoapis.com",
+    method: 'GET',
+    hostname: 'www.zohoapis.com',
     path: `/inventory/v1/salesorders?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`,
     headers: {
       Authorization: `Zoho-oauthtoken ${authToken}`,
@@ -22,30 +22,30 @@ async function getAllSalesOrders(authToken) {
 
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
-      let body = "";
+      let body = '';
 
-      res.on("data", (chunk) => {
+      res.on('data', (chunk) => {
         body += chunk;
       });
 
-      res.on("end", () => {
+      res.on('end', () => {
         try {
           const response = JSON.parse(body);
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            console.log("Fetched existing sales orders successfully.");
+            console.log('Fetched existing sales orders successfully.');
             resolve(response.salesorders || []);
           } else {
-            console.error("Error fetching sales orders:", response);
-            reject(new Error("Failed to fetch existing sales orders."));
+            console.error('Error fetching sales orders:', response);
+            reject(new Error('Failed to fetch existing sales orders.'));
           }
         } catch (parseError) {
-          console.error("Error parsing fetched sales orders:", parseError);
+          console.error('Error parsing fetched sales orders:', parseError);
           reject(parseError);
         }
       });
 
-      res.on("error", (error) => {
-        console.error("Network error fetching sales orders:", error);
+      res.on('error', (error) => {
+        console.error('Network error fetching sales orders:', error);
         reject(error);
       });
     });
@@ -459,81 +459,97 @@ async function createOrUpdateSO(
   authToken,
   resolve,
   reject,
-  sendEmail = null
+  sendEmail = null,
 ) {
-  console.log("soDetails=>", soDetails);
+  console.log('soDetails=>', soDetails);
 
   const createOptions = {
-    method: "POST",
-    hostname: "www.zohoapis.com",
+    method: 'POST',
+    hostname: 'www.zohoapis.com',
     path: `/inventory/v1/salesorders?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`,
     headers: {
       Authorization: `Zoho-oauthtoken ${authToken}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   };
 
   const updateOptions = (soId) => ({
-    method: "PUT",
-    hostname: "www.zohoapis.com",
+    method: 'PUT',
+    hostname: 'www.zohoapis.com',
     path: `/inventory/v1/salesorders/${soId}?organization_id=${process.env.ZOHO_ORGANIZATION_ID}`,
     headers: {
       Authorization: `Zoho-oauthtoken ${process.env.ZOHO_AUTH_TOKEN}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 
   const existingSO = existingSOs.find(
-    (so) => so.salesorder_number === soDetails.salesorder_number
+    (so) => so.salesorder_number === soDetails.salesorder_number,
   );
 
   let itemId = null;
   let itemInitialStock = null;
 
   try {
-    const fetchedItem = await fetchItemFromZoho(soDetails.sku, authToken, sendEmail) || {};
+    const fetchedItem =
+      (await fetchItemFromZoho(soDetails.sku, authToken, sendEmail)) || {};
     itemId = fetchedItem.itemId || null;
     itemInitialStock = fetchedItem.itemInitialStock || null;
 
     if (!itemId) console.warn(`No Item ID found for SKU ${soDetails.sku}`);
-    if (itemInitialStock === undefined) console.warn(`Initial stock not available for SKU ${soDetails.sku}`);
+    if (itemInitialStock === undefined)
+      console.warn(`Initial stock not available for SKU ${soDetails.sku}`);
   } catch (error) {
-    console.error(`Error fetching item details for SKU ${soDetails.sku}:`, error.message);
+    console.error(
+      `Error fetching item details for SKU ${soDetails.sku}:`,
+      error.message,
+    );
   }
 
   const soPayload = soDetails;
 
   const makeRequest = (options, isUpdate = false) => {
     const req = https.request(options, (res) => {
-      let body = "";
+      let body = '';
 
-      res.on("data", (chunk) => (body += chunk));
+      res.on('data', (chunk) => (body += chunk));
 
-      res.on("end", async () => {
+      res.on('end', async () => {
         try {
           const response = JSON.parse(body);
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            console.log(`SO ${isUpdate ? "updated" : "created"} successfully.`, response.message);
+            console.log(
+              `SO ${isUpdate ? 'updated' : 'created'} successfully.`,
+              response.message,
+            );
             resolve(response);
           } else {
-            console.error(`Error ${isUpdate ? "updating" : "creating"} SO:`, response);
-            if (sendEmail) sendEmail(`Error ${isUpdate ? "updating" : "creating"} SO: ${response.message}`);
-            reject(new Error(`API Error: ${res.statusCode} - ${response.message}`));
+            console.error(
+              `Error ${isUpdate ? 'updating' : 'creating'} SO:`,
+              response,
+            );
+            if (sendEmail)
+              sendEmail(
+                `Error ${isUpdate ? 'updating' : 'creating'} SO: ${response.message}`,
+              );
+            reject(
+              new Error(`API Error: ${res.statusCode} - ${response.message}`),
+            );
           }
           await delay(5000);
         } catch (parseError) {
-          console.error("Error parsing response:", parseError);
+          console.error('Error parsing response:', parseError);
           reject(parseError);
         }
       });
 
-      res.on("error", (error) => {
-        console.error("Network error:", error);
+      res.on('error', (error) => {
+        console.error('Network error:', error);
         reject(error);
       });
     });
 
-    console.log("soPayload=>", soPayload);
+    console.log('soPayload=>', soPayload);
 
     req.write(JSON.stringify(soPayload));
     req.end();
@@ -552,7 +568,7 @@ export const convertQuantityToItemUnit = (quantity, soUnit, itemUnit) => {
   const normalizedSoUnit = soUnit?.toLowerCase().trim();
   const normalizedItemUnit = itemUnit?.toLowerCase().trim();
 
-  const isBottle = (unit) => unit === "bot" || unit === "bottle";
+  const isBottle = (unit) => unit === 'bot' || unit === 'bottle';
 
   const getCaseSize = (unit) => {
     const match = unit.match(/^c(\d+)$/i); // matches C4, C6, C12, etc.
@@ -587,7 +603,13 @@ export const convertQuantityToItemUnit = (quantity, soUnit, itemUnit) => {
 };
 
 // Group line items for the same sales order
-async function groupLineItemsBySO(sodata, authToken, customers, wareHouses, sendEmail=null) {
+async function groupLineItemsBySO(
+  sodata,
+  authToken,
+  customers,
+  wareHouses,
+  sendEmail = null,
+) {
   const groupedSOs = {};
 
   for (const so of sodata) {
@@ -597,7 +619,8 @@ async function groupLineItemsBySO(sodata, authToken, customers, wareHouses, send
       let itemUnit = null;
 
       // Fetch item details
-      const fetchedItem = (await fetchItemFromZoho(so.sku, authToken, sendEmail)) || {};
+      const fetchedItem =
+        (await fetchItemFromZoho(so.sku, authToken, sendEmail)) || {};
       // console.log("fetchedItem=>", fetchedItem);
       itemId = fetchedItem.itemId;
       itemInitialStock = fetchedItem.itemInitialStock;
@@ -605,7 +628,9 @@ async function groupLineItemsBySO(sodata, authToken, customers, wareHouses, send
 
       const fetchedItemData = await fetchItemById(itemId, authToken, sendEmail);
       // console.log("fetchedItemData for itemId", itemId, "=>", fetchedItemData);
-      let unitConversions = fetchedItemData?.item?.unit_conversions ? fetchedItemData?.item?.unit_conversions: fetchedItemData?.unit_conversions;
+      let unitConversions = fetchedItemData?.item?.unit_conversions
+        ? fetchedItemData?.item?.unit_conversions
+        : fetchedItemData?.unit_conversions;
       let unitConversionId;
       let unitConversionRate = so.item_rate;
       // console.log("SO unitConversions=>", unitConversions);
@@ -622,7 +647,7 @@ async function groupLineItemsBySO(sodata, authToken, customers, wareHouses, send
           }
         });
       } else {
-        console.log("No unit conversions found");
+        console.log('No unit conversions found');
       }
 
       if (!itemId) {
@@ -630,36 +655,39 @@ async function groupLineItemsBySO(sodata, authToken, customers, wareHouses, send
       }
 
       // Fetch customer ID
-      let customerID = "";
-      console.log("customers=>", customers);
+      let customerID = '';
+      console.log('customers=>', customers);
       customers.forEach((customerData) => {
-        if (customerData?.contactName === so?.customer_name || customerData?.companyName === so?.customer_name) {
-          if (typeof customerData.customerId === "object") {
-            customerID = customerData.customerId?.customerId || "";
+        if (
+          customerData?.contactName === so?.customer_name ||
+          customerData?.companyName === so?.customer_name
+        ) {
+          if (typeof customerData.customerId === 'object') {
+            customerID = customerData.customerId?.customerId || '';
           } else {
-            customerID = customerData.customerId || "";
+            customerID = customerData.customerId || '';
           }
         }
       });
 
       if (!customerID) {
         throw new Error(
-          `Customer ID not found for customer: ${so.customer_name}`
+          `Customer ID not found for customer: ${so.customer_name}`,
         );
       }
 
       // Fetch warehouse ID
       const warehouseId = wareHouses.find(
-        (whData) => whData.warehouse_name === so.warehouse_name
+        (whData) => whData.warehouse_name === so.warehouse_name,
       )?.warehouse_id;
 
       if (!warehouseId) {
         throw new Error(
-          `Warehouse ID not found for warehouse: ${so.warehouse_name}`
+          `Warehouse ID not found for warehouse: ${so.warehouse_name}`,
         );
       }
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toISOString().split('T')[0];
 
       if (!groupedSOs[so.salesorder_number]) {
         groupedSOs[so.salesorder_number] = {
@@ -698,7 +726,7 @@ async function groupLineItemsBySO(sodata, authToken, customers, wareHouses, send
       groupedSOs[so.salesorder_number].line_items.push(lineItem);
     } catch (error) {
       console.error(
-        `Error processing SO: ${so.salesorder_number} | ${error.message}`
+        `Error processing SO: ${so.salesorder_number} | ${error.message}`,
       );
       // Optionally continue processing others, or rethrow to stop all
       throw error;
@@ -708,18 +736,31 @@ async function groupLineItemsBySO(sodata, authToken, customers, wareHouses, send
   return Object.values(groupedSOs);
 }
 
-async function pushSOToZoho(apiUrl, authToken, sodata, customers, wareHouses, sendEmail) {
-  console.log("sodata=>", sodata);
+async function pushSOToZoho(
+  apiUrl,
+  authToken,
+  sodata,
+  customers,
+  wareHouses,
+  sendEmail,
+) {
+  console.log('sodata=>', sodata);
 
   if (!Array.isArray(sodata) || sodata.length === 0) {
-    const error = new Error("Invalid or empty SO data provided");
+    const error = new Error('Invalid or empty SO data provided');
     console.error(error.message);
     if (sendEmail) sendEmail(error.message);
     throw error;
   }
 
-  const groupedSOData = await groupLineItemsBySO(sodata, authToken, customers, wareHouses, sendEmail);
-  console.log("groupedSOData=>", JSON.stringify(groupedSOData, null, 2));
+  const groupedSOData = await groupLineItemsBySO(
+    sodata,
+    authToken,
+    customers,
+    wareHouses,
+    sendEmail,
+  );
+  console.log('groupedSOData=>', JSON.stringify(groupedSOData, null, 2));
 
   try {
     const existingSOs = await getAllSalesOrders(authToken);
@@ -737,8 +778,8 @@ async function pushSOToZoho(apiUrl, authToken, sodata, customers, wareHouses, se
               authToken,
               resolve,
               reject,
-              sendEmail
-            )
+              sendEmail,
+            ),
           );
           console.log(`SO ${index + 1} processed successfully.`);
           await delay(5000);
@@ -747,25 +788,29 @@ async function pushSOToZoho(apiUrl, authToken, sodata, customers, wareHouses, se
           console.error(`Error processing SO ${index + 1}:`, error.message);
           return { error: error.message };
         }
-      })
+      }),
     );
 
     const results = await Promise.allSettled(soDetailsPromises);
 
     const successfulSOs = results
-      .filter((r) => r.status === "fulfilled" && !r.value?.error)
+      .filter((r) => r.status === 'fulfilled' && !r.value?.error)
       .map((r) => r.value);
 
-    const failedSOs = results.filter((r) => r.status === "fulfilled" && r.value?.error);
+    const failedSOs = results.filter(
+      (r) => r.status === 'fulfilled' && r.value?.error,
+    );
 
     if (sendEmail && failedSOs.length > 0) {
-      sendEmail(`Some Sales Orders failed: ${failedSOs.map(f => f.value.error).join(", ")}`);
+      sendEmail(
+        `Some Sales Orders failed: ${failedSOs.map((f) => f.value.error).join(', ')}`,
+      );
     }
 
-    console.log("All SOs processed. Successful SOs:", successfulSOs);
+    console.log('All SOs processed. Successful SOs:', successfulSOs);
     return successfulSOs;
   } catch (error) {
-    console.error("Error in pushSOToZoho:", error.message);
+    console.error('Error in pushSOToZoho:', error.message);
     throw error;
   }
 }

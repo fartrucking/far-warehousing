@@ -1,12 +1,12 @@
-import fetch from "node-fetch";
-import refreshToken from "./refreshToken.js";
+import fetch from 'node-fetch';
+import refreshToken from './refreshToken.js';
 
 async function fetchVendorsFromZoho(newToken, sendEmail = null) {
   try {
     const apiUrl = `https://www.zohoapis.com/inventory/v1/contacts?organization_id=${process.env.ZOHO_ORGANIZATION_ID}&contact_type=vendor`;
 
     const response = await fetch(apiUrl, {
-      method: "GET",
+      method: 'GET',
       headers: {
         Authorization: `Zoho-oauthtoken ${newToken}`,
       },
@@ -15,7 +15,7 @@ async function fetchVendorsFromZoho(newToken, sendEmail = null) {
     if (!response.ok) {
       const responseBody = await response.text();
       throw new Error(
-        `Failed to fetch vendors: ${response.status} ${response.statusText} - ${responseBody}`
+        `Failed to fetch vendors: ${response.status} ${response.statusText} - ${responseBody}`,
       );
     }
 
