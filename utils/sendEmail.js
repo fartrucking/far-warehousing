@@ -15,8 +15,8 @@ const sendEmail = async (text) => {
   try {
     const info = await transporter.sendMail({
       from: '"FAR Warehousing" <fartrucking4@gmail.com>', // Sender email
-      to: 'vishal.kudtarkar@techsierra.in, fartrucking4@gmail.com', // Recipients
-      // to: "vishal.kudtarkar@techsierra.in", // Recipients
+      // to: 'vishal.kudtarkar@techsierra.in, fartrucking4@gmail.com', // Recipients
+      to: "vishal.kudtarkar@techsierra.in", // Recipients
       subject: 'Order Processing Logs',
       text: text,
       html: text,
