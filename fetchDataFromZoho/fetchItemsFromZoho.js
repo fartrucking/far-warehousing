@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { normalizeSku } from './normalizeUtils.js';
+import { normalizeSku } from '../utils/normalizeUtils.js';
 
 async function fetchItemFromZoho(sku, newToken, sendEmail = null) {
   console.log('fetchItemFromZoho(), sku:', sku);
@@ -73,7 +73,7 @@ export async function fetchItemById(itemId, newToken, sendEmail = null) {
       const responseBody = await response.text();
       const warning = `Failed to fetch item by ID ${itemId}: ${response.status} ${response.statusText} - ${responseBody}`;
       console.warn(warning);
-      sendEmail?.(warning);
+      // sendEmail?.(warning);
       return null;
     }
 

@@ -1,15 +1,14 @@
 import https from 'https';
-import fetchItemFromZoho from './fetchItemsFromZoho.js';
-// import updateItemToZoho from "./updateItemToZoho.js";
+import fetchItemFromZoho from '../fetchDataFromZoho/fetchItemsFromZoho.js';
 import pLimit from 'p-limit';
-import { normalizeString } from './normalizeUtils.js';
+import { normalizeString } from '../utils/normalizeUtils.js';
 
 const limit = pLimit(5);
 
 // Delay function to pause between API calls
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Push or update items in Zoho
+// Push items in Zoho
 async function pushItemToZoho(
   apiUrl,
   authToken,
@@ -48,19 +47,6 @@ async function pushItemToZoho(
         // Item exists, update it
         item_id = fetchedItem.itemId;
         console.log(`Item with SKU ${item.sku} found with ID: ${item_id}.`);
-
-        // const payload = {
-        //   sku: fetchedItem?.zohoSku || item.sku, // 👈 Use Zoho SKU if available,
-        //   name: item.name,
-        //   item_type: item.item_type,
-        //   product_type: item.product_type,
-        //   unit: item.unit,
-        //   initial_stock_rate: item.initial_stock_rate > 0 ? Number(item.initial_stock_rate) : 0.01,
-        //   warehouse_name: item.warehouse_name,
-        // };
-
-        // response = await updateItemToZoho(item_id, authToken, payload);
-        // console.log("Item updated successfully:", response.message);
       } else {
         // Item doesn't exist, create it
         console.log(`Item with SKU ${item.sku} not found, creating...`);

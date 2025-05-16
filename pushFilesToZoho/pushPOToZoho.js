@@ -1,7 +1,10 @@
 import https from 'https';
 import pLimit from 'p-limit';
-import { fetchItemById } from './fetchItemsFromZoho.js';
-import { normalizeSku, normalizeString } from './normalizeUtils.js';
+import fetchItemFromZoho, {
+  fetchItemById,
+} from '../fetchDataFromZoho/fetchItemsFromZoho.js';
+import { normalizeSku, normalizeString } from '../utils/normalizeUtils.js';
+import { fetchAllPurchaseOrders } from '../fetchDataFromZoho/fetchAllPurchaseOrders.js';
 
 const limit = pLimit(5);
 
@@ -46,176 +49,6 @@ async function pushPOToZoho(
       'Content-Type': 'application/json',
     },
   });
-
-  // async function getAllPurchaseOrders() {
-  //   try {
-  //     return new Promise((resolve, reject) => {
-  //       const req = https.request(getOptions, (res) => {
-  //         let body = '';
-
-  //         res.on('data', (chunk) => {
-  //           body += chunk;
-  //         });
-
-  //         res.on('end', () => {
-  //           try {
-  //             const response = JSON.parse(body);
-  //             if (res.statusCode >= 200 && res.statusCode < 300) {
-  //               console.log('Fetched existing POs successfully.');
-  //               resolve(response.purchaseorders || []);
-  //             } else {
-  //               console.error('Error fetching POs:', response);
-  //               reject(
-  //                 new Error(
-  //                   `Failed to fetch existing purchase orders: ${response.message}`,
-  //                 ),
-  //               );
-  //             }
-  //           } catch (parseError) {
-  //             reject(
-  //               new Error(`Error parsing fetched POs: ${parseError.message}`),
-  //             );
-  //           }
-  //         });
-
-  //         res.on('error', (error) => {
-  //           reject(new Error(`Network error fetching POs: ${error.message}`));
-  //         });
-  //       });
-
-  //       req.end();
-  //     });
-  //   } catch (error) {
-  //     console.error('Error in getAllPurchaseOrders:', error);
-  //     throw error;
-  //   }
-  // }
-
-  // async function updatePOItemStock(itemData, poDetails, authToken) {
-  //   // Group line items by SKU and sum the quantities
-  //   const groupedLineItems = poDetails.line_items.reduce((acc, poItem) => {
-  //     const existingItem = acc[poItem.sku];
-  //     if (existingItem) {
-  //       existingItem.quantity += poItem.quantity;
-  //     } else {
-  //       acc[poItem.sku] = { ...poItem };
-  //     }
-  //     return acc;
-  //   }, {});
-
-  //   const updatePromises = Object.values(groupedLineItems).map(
-  //     async (poItem) => {
-  //       const item =
-  //         itemData?.find(
-  //           (item) => String(item.sku).trim() === String(poItem.sku).trim(),
-  //         ) || {};
-
-  //       const itemID = item.itemId || '';
-  //       const itemInitialStock = item.initialStock || '';
-  //       const po_stock = poItem.quantity || 0;
-
-  //       if (itemID) {
-  //         console.log(`Updating stock for SKU: ${poItem.sku}, Item ID: ${itemID}, Total Quantity: ${po_stock}`);
-  //         await delay(10000);
-  //         return await updateItemStock(itemID, itemInitialStock, authToken, po_stock, 0);
-  //       } else {
-  //         console.warn(`No match found for SKU: ${poItem.sku}, skipping update.`);
-  //       }
-  //     },
-  //   );
-
-  //   await Promise.all(updatePromises);
-  //   console.log('✅ All items processed.');
-  // }
-
-  async function getAllPurchaseOrders() {
-    try {
-      const allPurchaseOrders = [];
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore) {
-        const paginatedOptions = {
-          method: 'GET',
-          hostname: 'www.zohoapis.com',
-          path: `/inventory/v1/purchaseorders?organization_id=${process.env.ZOHO_ORGANIZATION_ID}&page=${page}&per_page=200`,
-          headers: {
-            Authorization: `Zoho-oauthtoken ${authToken}`,
-          },
-        };
-
-        const pageResult = await new Promise((resolve, reject) => {
-          const req = https.request(paginatedOptions, (res) => {
-            let body = '';
-
-            res.on('data', (chunk) => {
-              body += chunk;
-            });
-
-            res.on('end', () => {
-              try {
-                const response = JSON.parse(body);
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                  console.log(`Fetched POs page ${page} successfully.`);
-                  resolve(response);
-                } else {
-                  console.error(`Error fetching POs page ${page}:`, response);
-                  reject(
-                    new Error(
-                      `Failed to fetch purchase orders page ${page}: ${response.message}`,
-                    ),
-                  );
-                }
-              } catch (parseError) {
-                reject(
-                  new Error(
-                    `Error parsing fetched POs page ${page}: ${parseError.message}`,
-                  ),
-                );
-              }
-            });
-
-            res.on('error', (error) => {
-              reject(
-                new Error(
-                  `Network error fetching POs page ${page}: ${error.message}`,
-                ),
-              );
-            });
-          });
-
-          req.end();
-        });
-
-        // Add the fetched purchase orders to our collection
-        if (pageResult.purchaseorders && pageResult.purchaseorders.length > 0) {
-          allPurchaseOrders.push(...pageResult.purchaseorders);
-        }
-
-        // Check if there are more pages
-        hasMore = pageResult.page_context?.has_more_page || false;
-        console.log(
-          `Fetched purchase orders page ${page}, has_more_page: ${hasMore}`,
-        );
-
-        // Increment the page number for the next iteration
-        page++;
-
-        // Optional: Add a small delay between API calls to avoid rate limiting
-        if (hasMore) {
-          await delay(500); // 500ms delay between pagination requests
-        }
-      }
-
-      console.log(
-        `Fetched a total of ${allPurchaseOrders.length} purchase orders.`,
-      );
-      return allPurchaseOrders;
-    } catch (error) {
-      console.error('Error in getAllPurchaseOrders:', error);
-      throw error;
-    }
-  }
 
   async function createOrUpdatePO(poDetails, existingPOs) {
     return new Promise(async (resolve, reject) => {
@@ -385,7 +218,8 @@ async function pushPOToZoho(
 
         // Find vendor with case-insensitive comparison
         const vendor = vendors?.find(
-          (v) => v.vendor_name.toLowerCase() === po.vendor_name.toLowerCase(),
+          (v) =>
+            normalizeString(v.vendor_name) === normalizeString(po.vendor_name),
         );
         const vendorId = vendor?.vendor_id || '';
 
@@ -406,8 +240,8 @@ async function pushPOToZoho(
             (item) => normalizeSku(item.sku) === normalizeSku(po.sku),
           ) || {};
 
-        const itemID = item.itemId || '';
-        const itemUnit = item.itemUnit;
+        let itemID = item.itemId || '';
+        // const itemUnit = item.itemUnit;
 
         let unitConversions = [];
         let unitConversionId;
@@ -443,7 +277,20 @@ async function pushPOToZoho(
         }
 
         if (!itemID) {
-          throw new Error(`Missing itemId for SKU: ${po.sku}`);
+          // Try to fetch itemId using fetchItemFromZoho
+          const fetchedItem = await fetchItemFromZoho(
+            po.sku,
+            authToken,
+            sendEmail,
+          );
+          if (fetchedItem && fetchedItem.itemId) {
+            itemID = fetchedItem.itemId;
+          } else {
+            throw new Error(
+              `Item ID not found for SKU: ${po.sku}, check if item exists in Zoho.`,
+            );
+          }
+          // throw new Error(`Missing itemId for SKU: ${po.sku}`);
         }
 
         const lineItem = {
@@ -526,7 +373,7 @@ async function pushPOToZoho(
   }
 
   try {
-    const existingPOs = await getAllPurchaseOrders();
+    const existingPOs = await fetchAllPurchaseOrders(authToken);
 
     if (groupedPOData.length === 0) {
       console.log('No valid POs to process.');

@@ -1,5 +1,4 @@
 import fetch from 'node-fetch';
-// import refreshToken from "./refreshToken.js";
 
 async function fetchWarehousesFromZoho(newToken, sendEmail = null) {
   try {
