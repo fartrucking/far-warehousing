@@ -210,34 +210,7 @@ async function pushCustomerToZoho(
         `processCustomer(), Processing customer ${index + 1}: ${customerIdentifier}`,
       );
 
-      let existingCustomerId = null;
-      try {
-        const existingCustomer = await fetchCustomerFromZoho(
-          customer.contact_name,
-          customer.company_name,
-          authToken,
-        );
-
-        existingCustomerId = existingCustomer?.customerId || null;
-        existingCustomerContactName = existingCustomer?.contact_name || null;
-        existingCustomerCompanyName = existingCustomer?.company_name || null;
-      } catch (fetchError) {
-        console.warn(
-          `processCustomer(), Warning: Could not verify if customer exists: ${fetchError.message}`,
-        );
-      }
-
-      if (existingCustomerId) {
-        console.log(
-          `processCustomer(), Customer found in Zoho: ${customerIdentifier} (ID: ${existingCustomerId})`,
-        );
-        return {
-          contactName: existingCustomerContactName,
-          companyName: existingCustomerCompanyName,
-          customerId: existingCustomerId,
-          status: 'existing_in_zoho',
-        };
-      }
+      // Do NOT check if customer exists here
 
       const result = await createCustomer(customer, options);
 
@@ -249,12 +222,12 @@ async function pushCustomerToZoho(
 
           let existingCustomerId = null;
           try {
+            // Only fetch ID if duplicate is detected
             const existingCustomer = await fetchCustomerFromZoho(
               customer.contact_name,
               customer.company_name,
               authToken,
             );
-
             existingCustomerId = existingCustomer?.customerId || null;
           } catch (err) {
             console.error(
