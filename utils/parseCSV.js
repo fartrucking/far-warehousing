@@ -9,7 +9,7 @@ function parseCSV(csvContent) {
     });
     return records;
   } catch (error) {
-    console.error('Error parsing CSV:', error);
+    console.error('parseCSV(), Error parsing CSV:', error);
     throw error;
   }
 }

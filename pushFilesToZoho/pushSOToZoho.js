@@ -21,7 +21,7 @@ async function createOrUpdateSO(
   reject,
   sendEmail = null,
 ) {
-  console.log('soDetails=>', soDetails);
+  console.log('createOrUpdateSO(), soDetails=>', soDetails);
 
   const createOptions = {
     method: 'POST',
@@ -61,7 +61,10 @@ async function createOrUpdateSO(
         try {
           const response = JSON.parse(body);
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            console.log(`SO created successfully.`, response.message);
+            console.log(
+              `createOrUpdateSO(), SO created successfully.`,
+              response.message,
+            );
             resolve(response);
           } else {
             console.error(`Error creating SO:`, response);
@@ -72,18 +75,21 @@ async function createOrUpdateSO(
           }
           await delay(5000);
         } catch (parseError) {
-          console.error('Error parsing response:', parseError);
+          console.error(
+            'createOrUpdateSO(), Error parsing response:',
+            parseError,
+          );
           reject(parseError);
         }
       });
 
       res.on('error', (error) => {
-        console.error('Network error:', error);
+        console.error('createOrUpdateSO(), Network error:', error);
         reject(error);
       });
     });
 
-    console.log('soPayload=>', soPayload);
+    console.log('createOrUpdateSO(), soPayload=>', soPayload);
 
     req.write(JSON.stringify(soPayload));
     req.end();
@@ -99,7 +105,9 @@ async function createOrUpdateSO(
       status: 'exists',
     });
   } else {
-    console.log(`Creating new SO: ${soDetails.salesorder_number}`);
+    console.log(
+      `createOrUpdateSO(), Creating new SO: ${soDetails.salesorder_number}`,
+    );
     makeRequest(createOptions);
   }
 }
@@ -124,18 +132,18 @@ async function groupLineItemsBySO(
       // Fetch item details
       const fetchedItem =
         (await fetchItemFromZoho(so.sku, authToken, sendEmail)) || {};
-      console.log('fetchedItem=>', fetchedItem);
+      console.log('groupLineItemsBySO(), fetchedItem=>', fetchedItem);
       itemId = fetchedItem.itemId;
       itemName = fetchedItem.name;
 
       const fetchedItemData = await fetchItemById(itemId, authToken, sendEmail);
-      // console.log("fetchedItemData for itemId", itemId, "=>", fetchedItemData);
+      // console.log("groupLineItemsBySO(), fetchedItemData for itemId", itemId, "=>", fetchedItemData);
       let unitConversions = fetchedItemData?.item?.unit_conversions
         ? fetchedItemData?.item?.unit_conversions
         : fetchedItemData?.unit_conversions;
       let unitConversionId;
       let unitConversionRate = so.item_rate;
-      // console.log("SO unitConversions=>", unitConversions);
+      // console.log("groupLineItemsBySO(), SO unitConversions=>", unitConversions);
 
       // Check if there are any unit conversions
       if (unitConversions && unitConversions.length > 0) {
@@ -146,7 +154,7 @@ async function groupLineItemsBySO(
           }
         });
       } else {
-        console.log('No unit conversions found');
+        console.log('groupLineItemsBySO(), No unit conversions found');
       }
 
       if (!itemId) {
@@ -285,7 +293,7 @@ async function pushSOToZoho(
   wareHouses,
   sendEmail,
 ) {
-  console.log('sodata=>', sodata);
+  console.log('pushSOToZoho(), sodata=>', sodata);
 
   if (!Array.isArray(sodata) || sodata.length === 0) {
     const error = new Error('Invalid or empty SO data provided');
@@ -303,7 +311,10 @@ async function pushSOToZoho(
     wareHouses,
     sendEmail,
   );
-  console.log('groupedSOData=>', JSON.stringify(groupedSOs, null, 2));
+  console.log(
+    'pushSOToZoho(), groupedSOData=>',
+    JSON.stringify(groupedSOs, null, 2),
+  );
 
   try {
     const existingSOs = await fetchAllSalesOrders(authToken);
@@ -324,11 +335,16 @@ async function pushSOToZoho(
               sendEmail,
             ),
           );
-          console.log(`SO ${index + 1} processed successfully.`);
+          console.log(
+            `pushSOToZoho(), SO ${index + 1} processed successfully.`,
+          );
           await delay(5000);
           return result;
         } catch (error) {
-          console.error(`Error processing SO ${index + 1}:`, error.message);
+          console.error(
+            `pushSOToZoho(), Error processing SO ${index + 1}:`,
+            error.message,
+          );
           return {
             error: error.message,
             salesorder_number: groupedSO.salesorder_number,
@@ -362,10 +378,13 @@ async function pushSOToZoho(
       );
     }
 
-    console.log('All SOs processed. Successful SOs:', successfulSOs);
+    console.log(
+      'pushSOToZoho(), All SOs processed. Successful SOs:',
+      successfulSOs,
+    );
     return successfulSOs;
   } catch (error) {
-    console.error('Error in pushSOToZoho:', error.message);
+    console.error('pushSOToZoho(), Error in pushSOToZoho:', error.message);
     throw error;
   }
 }

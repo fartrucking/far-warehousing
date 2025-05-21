@@ -14,6 +14,7 @@ import sendEmail from './utils/sendEmail.js';
 import getFilesFromBucket from './utils/getFilesFromBucket.js';
 import moveFileToFolder from './utils/moveFileToFolder.js';
 import classifyFiles from './utils/classifyFiles.js';
+import { normalizeCSVContent } from './utils/normalizeColumnName.js';
 
 dotenv.config();
 
@@ -44,9 +45,15 @@ async function processCSVFile(
       .file(filePath)
       .download();
 
+    // Normalize the CSV content before parsing
+    const normalizedCSVContent = normalizeCSVContent(fileContents.toString());
+    console.log(
+      `processCSVFile(), CSV content normalized for file: ${filePath}`,
+    );
+
     let data;
     try {
-      data = parseCSV(fileContents.toString());
+      data = parseCSV(normalizedCSVContent);
     } catch (parseError) {
       console.error(
         `processCSVFile(), Error parsing CSV for file ${filePath}:`,
@@ -327,7 +334,7 @@ async function processDirectories() {
     bucketName,
   );
 
-  // **Ensure SO files are processed first**
+  // Process files in a specific order: items, POs, customers, SOs
   const processingOrder = [
     ...itemFiles,
     ...poFiles,
