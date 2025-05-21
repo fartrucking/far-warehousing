@@ -20,7 +20,7 @@ export const standardizeWarehouseNames = (
   const headers = rows[0].split(',').map((h) => h.trim());
   const warehouseNameIndex = headers.findIndex(
     (header) =>
-      'warehouse_name' ||
+      header === 'warehouse_name' ||
       header.toLowerCase().includes('warehouse') ||
       header.toLowerCase().includes('wh'),
   );
@@ -44,7 +44,7 @@ export const standardizeWarehouseNames = (
       const originalValue = row[warehouseNameIndex].trim();
 
       if (originalValue && originalValue !== standardWarehouseName) {
-        console.warn(
+        console.log(
           `[Row ${i}] Updated warehouse_name from "${originalValue}" to "${standardWarehouseName}"`,
         );
         row[warehouseNameIndex] = standardWarehouseName;
@@ -60,7 +60,7 @@ export const standardizeWarehouseNames = (
   }
 
   if (replacementCount > 0) {
-    console.warn(
+    console.log(
       `Standardized ${replacementCount} warehouse names to "${standardWarehouseName}"`,
     );
     sendEmail(
