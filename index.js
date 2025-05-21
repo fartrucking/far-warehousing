@@ -30,6 +30,35 @@ const bucketName = process.env.GCS_BUCKET_NAME;
 let allItemData = [];
 let allCustomerData = [];
 
+async function normalizeAndClassifyFiles(files, storage, bucketName) {
+  const normalizedFiles = [];
+
+  for (const file of files) {
+    try {
+      const [fileContents] = await storage
+        .bucket(bucketName)
+        .file(file.name)
+        .download();
+      const normalizedCSVContent = normalizeCSVContent(fileContents.toString());
+
+      // Create a new file object with normalized content
+      normalizedFiles.push({
+        ...file,
+        normalizedContent: normalizedCSVContent,
+      });
+
+      console.log(`Normalized file: ${file.name}`);
+    } catch (error) {
+      console.error(`Error normalizing file ${file.name}:`, error);
+      // Keep the original file if normalization fails
+      normalizedFiles.push(file);
+    }
+  }
+
+  // Now classify the normalized files
+  return classifyFiles(normalizedFiles, storage, bucketName);
+}
+
 async function processCSVFile(
   filePath,
   newToken,
@@ -40,17 +69,20 @@ async function processCSVFile(
   let result = null;
   try {
     const file = storage.bucket(bucketName).file(filePath);
-    const [fileContents] = await storage
-      .bucket(bucketName)
-      .file(filePath)
-      .download();
 
-    // Normalize the CSV content before parsing
-    const normalizedCSVContent = normalizeCSVContent(fileContents.toString());
-    console.log(
-      `processCSVFile(), CSV content normalized for file: ${filePath}`,
-    );
-
+    // Check if we already have normalized content (from classifyFiles)
+    let normalizedCSVContent;
+    if (file.normalizedContent) {
+      normalizedCSVContent = file.normalizedContent;
+      console.log(`Using pre-normalized content for file: ${filePath}`);
+    } else {
+      // Fallback to normal normalization if not pre-normalized
+      const [fileContents] = await storage
+        .bucket(bucketName)
+        .file(filePath)
+        .download();
+      normalizedCSVContent = normalizeCSVContent(fileContents.toString());
+    }
     let data;
     try {
       data = parseCSV(normalizedCSVContent);
@@ -67,7 +99,7 @@ async function processCSVFile(
         file,
         storage,
         bucketName,
-        `not-processed/FAILED_${filePath.split('/').pop()}`
+        `not-processed/FAILED_${filePath.split('/').pop()}`,
       );
       return null;
     }
@@ -79,7 +111,7 @@ async function processCSVFile(
         file,
         storage,
         bucketName,
-        `not-processed/EMPTY_${filePath.split('/').pop()}`
+        `not-processed/EMPTY_${filePath.split('/').pop()}`,
       );
       return null;
     }
@@ -124,7 +156,7 @@ async function processCSVFile(
             file,
             storage,
             bucketName,
-            `not-processed/ERROR_ITEM_${filePath.split('/').pop()}`
+            `not-processed/ERROR_ITEM_${filePath.split('/').pop()}`,
           );
           return null;
         }
@@ -153,7 +185,7 @@ async function processCSVFile(
             file,
             storage,
             bucketName,
-            `not-processed/ERROR_PO_${filePath.split('/').pop()}`
+            `not-processed/ERROR_PO_${filePath.split('/').pop()}`,
           );
           return null;
         }
@@ -224,7 +256,7 @@ async function processCSVFile(
             file,
             storage,
             bucketName,
-            `not-processed/ERROR_CUSTOMER_${filePath.split('/').pop()}`
+            `not-processed/ERROR_CUSTOMER_${filePath.split('/').pop()}`,
           );
           return null;
         }
@@ -253,7 +285,7 @@ async function processCSVFile(
             file,
             storage,
             bucketName,
-            `not-processed/ERROR_SO_${filePath.split('/').pop()}`
+            `not-processed/ERROR_SO_${filePath.split('/').pop()}`,
           );
           return null;
         }
@@ -274,7 +306,7 @@ async function processCSVFile(
           file,
           storage,
           bucketName,
-          `not-processed/UNRECOGNIZED_${filePath.split('/').pop()}`
+          `not-processed/UNRECOGNIZED_${filePath.split('/').pop()}`,
         );
         return null;
       }
@@ -298,7 +330,7 @@ async function processCSVFile(
         file,
         storage,
         bucketName,
-        `not-processed/ERROR_${filePath.split('/').pop()}`
+        `not-processed/ERROR_${filePath.split('/').pop()}`,
       );
       return null;
     }
@@ -311,13 +343,13 @@ async function processCSVFile(
 
     // Get the file object again in case it wasn't created in the try block
     const file = storage.bucket(bucketName).file(filePath);
-    
+
     // Move the file to the "not-processed" folder
     await moveFileToFolder(
       file,
       storage,
       bucketName,
-      `not-processed/FAILED_${filePath.split('/').pop()}`
+      `not-processed/FAILED_${filePath.split('/').pop()}`,
     );
   }
 
@@ -333,26 +365,21 @@ async function processDirectories() {
   const files = await getFilesFromBucket(storage, bucketName);
   if (!files || files.length === 0) {
     console.log('processDirectories(), No files found in the bucket.');
-    return; // Exit the function
+    return;
   }
 
   const wareHouses = await fetchWarehousesFromZoho(
     newToken.access_token,
     sendEmail,
   );
-
   const vendors = await fetchVendorsFromZoho(newToken.access_token, sendEmail);
-
   const existingCustomers = await fetchAllCustomersFromZoho(
     newToken.access_token,
   );
 
-  // Categorize files by type using the utility function
-  const { itemFiles, poFiles, customerFiles, soFiles } = await classifyFiles(
-    files,
-    storage,
-    bucketName,
-  );
+  // Normalize and classify files in one step
+  const { itemFiles, poFiles, customerFiles, soFiles } =
+    await normalizeAndClassifyFiles(files, storage, bucketName);
 
   // Process files in a specific order: items, POs, customers, SOs
   const processingOrder = [
