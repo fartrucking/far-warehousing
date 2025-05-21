@@ -322,10 +322,13 @@ async function pushPOToZoho(
           processedPOs.push({
             purchaseorder_number: po.purchaseorder_number,
             date: po.purchaseorder_date,
+            // Assuming po is the purchase order object that contains both dates
             delivery_date:
-              new Date(po.delivery_date) < new Date()
-                ? today
-                : po.delivery_date,
+              new Date(po.delivery_date) < new Date(po.purchaseorder_date)
+                ? po.purchaseorder_date // Set to purchase order date if delivery date is before it
+                : new Date(po.delivery_date) < new Date()
+                  ? today // Set to today if delivery date is in the past
+                  : po.delivery_date, // Otherwise keep the original delivery date
             vendor_id: vendorId,
             attention: warehouseName,
             delivery_org_address_id: warehouseId,
