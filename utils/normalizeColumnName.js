@@ -138,10 +138,7 @@ export const normalizeCSVContent = (csvContent) => {
   let normalizedContent = csvContent;
 
   // First standardize warehouse names
-  normalizedContent = standardizeWarehouseNames(
-    normalizedContent,
-    (standardWarehouseName = 'F.A.R. TRUCKING & WARHOUSING INC.'),
-  );
+  normalizedContent = standardizeWarehouseNames(normalizedContent);
 
   const rows = normalizedContent.split('\n');
   if (rows.length === 0) {
