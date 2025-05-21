@@ -65,7 +65,9 @@ async function processCSVFile(
       );
       await moveFileToFolder(
         file,
-        `not-processed/FAILED_${filePath.split('/').pop()}`,
+        storage,
+        bucketName,
+        `not-processed/FAILED_${filePath.split('/').pop()}`
       );
       return null;
     }
@@ -75,7 +77,9 @@ async function processCSVFile(
       sendEmail(`Empty CSV file: ${filePath}`);
       await moveFileToFolder(
         file,
-        `not-processed/EMPTY_${filePath.split('/').pop()}`,
+        storage,
+        bucketName,
+        `not-processed/EMPTY_${filePath.split('/').pop()}`
       );
       return null;
     }
@@ -118,7 +122,9 @@ async function processCSVFile(
           sendEmail(`Error processing "item" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_ITEM_${filePath.split('/').pop()}`,
+            storage,
+            bucketName,
+            `not-processed/ERROR_ITEM_${filePath.split('/').pop()}`
           );
           return null;
         }
@@ -145,7 +151,9 @@ async function processCSVFile(
           sendEmail(`Error processing "PO" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_PO_${filePath.split('/').pop()}`,
+            storage,
+            bucketName,
+            `not-processed/ERROR_PO_${filePath.split('/').pop()}`
           );
           return null;
         }
@@ -214,7 +222,9 @@ async function processCSVFile(
           sendEmail(`Error processing "customer" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_CUSTOMER_${filePath.split('/').pop()}`,
+            storage,
+            bucketName,
+            `not-processed/ERROR_CUSTOMER_${filePath.split('/').pop()}`
           );
           return null;
         }
@@ -241,7 +251,9 @@ async function processCSVFile(
           sendEmail(`Error processing "SO" file: ${filePath}: ${error}`);
           await moveFileToFolder(
             file,
-            `not-processed/ERROR_SO_${filePath.split('/').pop()}`,
+            storage,
+            bucketName,
+            `not-processed/ERROR_SO_${filePath.split('/').pop()}`
           );
           return null;
         }
@@ -260,7 +272,9 @@ async function processCSVFile(
         );
         await moveFileToFolder(
           file,
-          `not-processed/UNRECOGNIZED_${filePath.split('/').pop()}`,
+          storage,
+          bucketName,
+          `not-processed/UNRECOGNIZED_${filePath.split('/').pop()}`
         );
         return null;
       }
@@ -272,9 +286,8 @@ async function processCSVFile(
         sendEmail(`File processed successfully: ${filePath}`);
         const newFilePath = `DONE_${filePath.split('/').pop()}`;
         const destination = `processed/${newFilePath}`;
-        await file.copy(storage.bucket(bucketName).file(destination));
-        await file.delete();
-        console.log(`processCSVFile(), File renamed to: ${destination}`);
+        await moveFileToFolder(file, storage, bucketName, destination);
+        console.log(`processCSVFile(), File moved to: ${destination}`);
       }
     } catch (error) {
       console.error(
@@ -283,7 +296,9 @@ async function processCSVFile(
       );
       await moveFileToFolder(
         file,
-        `not-processed/ERROR_${filePath.split('/').pop()}`,
+        storage,
+        bucketName,
+        `not-processed/ERROR_${filePath.split('/').pop()}`
       );
       return null;
     }
@@ -294,10 +309,15 @@ async function processCSVFile(
     );
     await logError('Processing CSV', filePath, error.message);
 
+    // Get the file object again in case it wasn't created in the try block
+    const file = storage.bucket(bucketName).file(filePath);
+    
     // Move the file to the "not-processed" folder
     await moveFileToFolder(
       file,
-      `not-processed/FAILED_${filePath.split('/').pop()}`,
+      storage,
+      bucketName,
+      `not-processed/FAILED_${filePath.split('/').pop()}`
     );
   }
 
