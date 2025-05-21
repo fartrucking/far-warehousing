@@ -64,7 +64,7 @@ export const standardizeWarehouseNames = (
       `Standardized ${replacementCount} warehouse names to "${standardWarehouseName}"`,
     );
     sendEmail(
-      `Standardized ${replacementCount} warehouse names to "${standardWarehouseName}"`,
+      `Warning: Standardized ${replacementCount} warehouse names to "${standardWarehouseName}"`,
     );
   } else {
     console.log('All warehouse names were already standardized');
