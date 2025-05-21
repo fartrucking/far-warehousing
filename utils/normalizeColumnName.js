@@ -1,4 +1,4 @@
-import { standardizeWarehouseNames } from "./standardizeWarehouseNames";
+import { standardizeWarehouseNames } from './standardizeWarehouseNames.js';
 
 // Function to normalize column names in CSV
 const normalizeColumnName = (columnName) => {
@@ -138,7 +138,10 @@ export const normalizeCSVContent = (csvContent) => {
   let normalizedContent = csvContent;
 
   // First standardize warehouse names
-  normalizedContent = standardizeWarehouseNames(normalizedContent);
+  normalizedContent = standardizeWarehouseNames(
+    normalizedContent,
+    (standardWarehouseName = 'F.A.R. TRUCKING & WARHOUSING INC.'),
+  );
 
   const rows = normalizedContent.split('\n');
   if (rows.length === 0) {

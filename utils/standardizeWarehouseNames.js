@@ -1,4 +1,4 @@
-import sendEmail from './sendEmail';
+import sendEmail from './sendEmail.js';
 
 /**
  * Standardizes warehouse names in CSV content
