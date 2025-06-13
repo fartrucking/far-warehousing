@@ -1,4 +1,5 @@
-export const normalizeString = (str) => str?.toLowerCase().replace(/\s+/g, '');
+export const normalizeString = (str) =>
+  str?.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export function normalizeSku(sku) {
   return sku
