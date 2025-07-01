@@ -6,7 +6,7 @@ import sendEmail from './sendEmail.js';
  * @param {string} standardWarehouseName - The standard warehouse name to use
  * @returns {string} The processed CSV content
  */
-function standardizeWarehouseNames(csvContent) {
+export function standardizeWarehouseNames(csvContent) {
   const standardName = 'F.A.R. TRUCKING & WAREHOUSING INC.';
   const rows = [];
   let currentRow = [];
