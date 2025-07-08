@@ -231,7 +231,7 @@ async function pushPOToZoho(
 
         if (!vendorId) {
           throw new Error(
-            `Missing vendorId for PO: ${po.purchaseorder_number}, vendor: ${po.vendor_name}`,
+            `Missing vendorId for PO: ${po.purchaseorder_number}, vendor: ${po.vendor_name}. Check if vendor exists or name is correct.`,
           );
         }
 
